@@ -7,7 +7,7 @@ import time
 
 PI_IP = "192.168.10.2"
 PI_USER = "hanggu-pi5"
-PI_STREAM_SCRIPT = "~/Aryan/stream.py"
+PI_STREAM_SCRIPT = "~/Camera_streaming_rpi/stream.py"
 PORT = 9999
 
 # --------------------------------------------------
