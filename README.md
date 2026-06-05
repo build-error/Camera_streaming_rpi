@@ -206,35 +206,54 @@ Identify the Ethernet interface:
 ip link
 ```
 
-Typical interface names:
+Typical Ethernet interface names:
 
 ```text
 eno1
 enp3s0
+enp88s0
 eth0
 ```
 
-Assign a static IP address:
+The interface name varies depending on the hardware and Linux distribution.
 
-```bash
-sudo ip addr add 192.168.10.1/24 dev eno1
+For example, on the development laptop used for this project:
+
+```text
+enp88s0
 ```
 
-Replace `eno1` with your Ethernet interface.
+was the Ethernet interface.
+
+Assign a static IPv4 address:
+
+```bash
+sudo ip addr add 192.168.10.1/24 dev <ethernet_interface>
+```
+
+Example:
+
+```bash
+sudo ip addr add 192.168.10.1/24 dev enp88s0
+```
 
 Verify:
 
 ```bash
-ip addr show eno1
+ip addr show <ethernet_interface>
 ```
 
-Expected:
+Example:
+
+```bash
+ip addr show enp88s0
+```
+
+Expected output:
 
 ```text
 inet 192.168.10.1/24
 ```
-
----
 
 ## Connectivity Test
 
