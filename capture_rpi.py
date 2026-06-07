@@ -162,10 +162,11 @@ try:
             cv2.IMREAD_COLOR
         )
 
-        frame = cv2.cvtColor(
-            frame,
-            cv2.COLOR_BGR2RGB
-        )
+        # only when running on rpi
+        # frame = cv2.cvtColor(
+        #     frame,
+        #     cv2.COLOR_BGR2RGB
+        # )
 
         if frame is None:
             continue
@@ -177,7 +178,8 @@ try:
 
         key = cv2.waitKey(1) & 0xFF
 
-        if key == 27:  # ESC
+        if key == ord('q'):  # ESC
+            print("Exit")
             break
 
 except KeyboardInterrupt:
@@ -185,6 +187,26 @@ except KeyboardInterrupt:
     pass
 
 finally:
+
+    print("Stopping stream server...")
+
+    try:
+
+        subprocess.run(
+            [
+                "ssh",
+                f"{PI_USER}@{PI_IP}",
+                "pkill -f stream.py"
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+    except Exception as e:
+
+        print(
+            f"Warning: Failed to stop stream.py: {e}"
+        )
 
     try:
         client_socket.close()
