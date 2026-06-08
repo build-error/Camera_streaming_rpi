@@ -5,7 +5,8 @@ import numpy as np
 import subprocess
 import time
 
-PI_IP = "192.168.10.3"
+# PI_IP = "192.168.10.3"
+PI_IP = "192.168.4.1"
 PI_USER = "aryan"
 PI_STREAM_SCRIPT = "~/Drone/Camera_streaming_rpi/stream.py"
 PORT = 9999
