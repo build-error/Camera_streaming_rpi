@@ -123,9 +123,14 @@ pip install picamera2
 
 # Network Configuration
 
+This project have two network configuration
+
+1. Over the ethernet streaming
+2. Wireless using Rpi as Access point
+
 This project assumes a direct Ethernet connection between the Raspberry Pi and the laptop.
 
-## Physical Connection
+# Over the ethernet method
 
 ```text
 Laptop <------ Ethernet ------> Raspberry Pi 5
@@ -455,6 +460,473 @@ ssh-copy-id aryan@192.168.10.2
 This allows `capture_rpi.py` to automatically launch the streaming server.
 
 ---
+
+# Raspberry Pi 5 Access Point + Internet Sharing Setup
+
+## Overview
+
+This document describes how to configure a Raspberry Pi 5 running Ubuntu 24.04 LTS as:
+
+- A permanent WiFi Access Point (`DroneNet`)
+- A camera streaming server
+- A robotics companion computer
+
+while simultaneously receiving internet access from a laptop through Ethernet.
+
+Final architecture:
+
+```text
+                    Internet
+                        │
+                  CU-Wireless
+                        │
+                     Laptop
+                        │
+                  Ethernet
+                 192.168.10.1
+                        │
+                        ▼
+                 Raspberry Pi 5
+                 192.168.10.3
+                 ┌───────────┐
+                 │   eth0    │
+                 └─────┬─────┘
+                       │
+                 Internet Access
+
+                 ┌───────────┐
+                 │   wlan0   │
+                 └─────┬─────┘
+                       │
+                  DroneNet AP
+                  192.168.4.1
+                       │
+      Camera Streaming / SSH / ROS2 / PX4
+```
+
+---
+
+# 1. Verify AP Mode Support
+
+On the Raspberry Pi:
+
+```bash
+iw list | grep -A 15 "Supported interface modes"
+```
+
+Verify that:
+
+```text
+* AP
+```
+
+appears in the output.
+
+---
+
+# 2. Create Access Point
+
+Create a new NetworkManager connection:
+
+```bash
+sudo nmcli connection add \
+    type wifi \
+    ifname wlan0 \
+    con-name DroneAP \
+    autoconnect yes \
+    ssid DroneNet
+```
+
+---
+
+# 3. Configure AP Mode
+
+Configure the connection as an Access Point:
+
+```bash
+sudo nmcli connection modify DroneAP \
+    802-11-wireless.mode ap \
+    802-11-wireless.band a
+```
+
+The `a` band enables 5 GHz operation.
+
+---
+
+# 4. Configure WPA2 Security
+
+Choose a password with at least 8 characters.
+
+Example:
+
+```bash
+sudo nmcli connection modify DroneAP \
+    wifi-sec.key-mgmt wpa-psk \
+    wifi-sec.psk "YourPasswordHere"
+```
+
+---
+
+# 5. Configure Static AP Address
+
+Assign a fixed address to the AP:
+
+```bash
+sudo nmcli connection modify DroneAP \
+    ipv4.method shared \
+    ipv4.addresses 192.168.4.1/24
+```
+
+---
+
+# 6. Disable Other WiFi Profiles
+
+Prevent the Pi from automatically joining other WiFi networks.
+
+Example:
+
+```bash
+sudo nmcli connection modify CU-Wireless connection.autoconnect no
+
+sudo nmcli connection modify "CU-Wireless 1" connection.autoconnect no
+```
+
+---
+
+# 7. Start the Access Point
+
+```bash
+sudo nmcli connection up DroneAP
+```
+
+Verify:
+
+```bash
+ip addr show wlan0
+```
+
+Expected:
+
+```text
+inet 192.168.4.1/24
+```
+
+---
+
+# 8. Verify Auto Start
+
+Reboot:
+
+```bash
+sudo reboot
+```
+
+Verify that:
+
+```text
+DroneNet
+```
+
+appears automatically without running any commands.
+
+---
+
+# 9. Configure Static Ethernet
+
+Edit:
+
+```bash
+sudo nano /etc/netplan/01-network-manager-all.yaml
+```
+
+Configuration:
+
+```yaml
+network:
+  version: 2
+  renderer: NetworkManager
+
+  ethernets:
+    eth0:
+      dhcp4: false
+
+      addresses:
+        - 192.168.10.3/24
+
+      routes:
+        - to: default
+          via: 192.168.10.1
+
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 1.1.1.1
+```
+
+Apply:
+
+```bash
+sudo netplan apply
+```
+
+Verify:
+
+```bash
+ip addr show eth0
+```
+
+Expected:
+
+```text
+inet 192.168.10.3/24
+```
+
+---
+
+# 10. Configure Laptop Ethernet
+
+Configure the laptop Ethernet adapter manually.
+
+Example:
+
+```text
+Interface : enp88s0
+
+Address   : 192.168.10.1
+Netmask   : 255.255.255.0
+Gateway   : (leave blank)
+```
+
+Verify:
+
+```bash
+ip addr show enp88s0
+```
+
+Expected:
+
+```text
+inet 192.168.10.1/24
+```
+
+---
+
+# 11. Enable IP Forwarding on Laptop
+
+Verify:
+
+```bash
+sudo sysctl net.ipv4.ip_forward
+```
+
+Expected:
+
+```text
+net.ipv4.ip_forward = 1
+```
+
+If disabled:
+
+```bash
+sudo sysctl -w net.ipv4.ip_forward=1
+```
+
+Make permanent:
+
+```bash
+echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
+```
+
+---
+
+# 12. Configure NAT on Laptop
+
+Allow Ethernet clients to use the laptop's WiFi connection.
+
+Replace:
+
+```text
+wlp0s20f3
+```
+
+with your WiFi interface name if different.
+
+Add NAT:
+
+```bash
+sudo iptables -t nat -A POSTROUTING \
+    -o wlp0s20f3 \
+    -j MASQUERADE
+```
+
+Allow forwarding:
+
+```bash
+sudo iptables -A FORWARD \
+    -i enp88s0 \
+    -o wlp0s20f3 \
+    -j ACCEPT
+```
+
+Allow return traffic:
+
+```bash
+sudo iptables -A FORWARD \
+    -i wlp0s20f3 \
+    -o enp88s0 \
+    -m state --state RELATED,ESTABLISHED \
+    -j ACCEPT
+```
+
+---
+
+# 13. Make iptables Persistent
+
+Install:
+
+```bash
+sudo apt update
+sudo apt install iptables-persistent -y
+```
+
+Save current rules:
+
+```bash
+sudo netfilter-persistent save
+```
+
+Verify after reboot:
+
+```bash
+sudo iptables -t nat -L -n -v
+```
+
+---
+
+# 14. Verify Internet Access on Pi
+
+Verify routing:
+
+```bash
+ip route
+```
+
+Expected:
+
+```text
+default via 192.168.10.1 dev eth0
+```
+
+Test internet:
+
+```bash
+ping 8.8.8.8
+```
+
+Test DNS:
+
+```bash
+ping google.com
+```
+
+Update packages:
+
+```bash
+sudo apt update
+```
+
+---
+
+# 15. Connect Laptop to DroneNet
+
+Search for:
+
+```text
+DroneNet
+```
+
+Connect using the configured password.
+
+Verify:
+
+```bash
+ping 192.168.4.1
+```
+
+SSH:
+
+```bash
+ssh aryan@192.168.4.1
+```
+
+---
+
+# Final Network Configuration
+
+## Raspberry Pi
+
+```text
+wlan0
+IP: 192.168.4.1
+Mode: Access Point
+SSID: DroneNet
+
+eth0
+IP: 192.168.10.3
+Gateway: 192.168.10.1
+DNS:
+  8.8.8.8
+  1.1.1.1
+```
+
+## Laptop
+
+```text
+WiFi
+Internet Connection
+
+Ethernet
+IP: 192.168.10.1
+NAT Enabled
+IP Forwarding Enabled
+```
+
+---
+
+# Typical Usage
+
+Power on Raspberry Pi:
+
+```text
+DroneNet starts automatically
+```
+
+Connect laptop to:
+
+```text
+DroneNet
+```
+
+Use:
+
+```bash
+ssh aryan@192.168.4.1
+```
+
+Camera streaming:
+
+```python
+PI_IP = "192.168.4.1"
+```
+
+Install packages on Pi:
+
+```bash
+sudo apt update
+sudo apt install ...
+```
+
+through the Ethernet connection without modifying the DroneNet network.
 
 # Camera Abstraction Layer
 
