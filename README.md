@@ -1180,4 +1180,8 @@ python3 capture_rpi.py
 
 # License
 
-This project is intended for research, robotics, and educational purposes.
+This project is released under the MIT License.
+
+You are free to use, modify, and distribute this software for both academic and commercial purposes, provided that the original copyright notice and license are included.
+
+See the [LICENSE](LICENSE.md) file for the full license text.
