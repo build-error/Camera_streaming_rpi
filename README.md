@@ -1,5 +1,7 @@
 # Camera Streaming: Raspberry Pi 5 → Laptop
 
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+
 A lightweight TCP-based camera streaming framework for transmitting video from a Raspberry Pi 5 (Pi Camera or USB Webcam) to a laptop for real-time computer vision applications.
 
 The Raspberry Pi is responsible only for image acquisition and transmission. All image processing, object detection, tracking, visual servoing, and control algorithms are executed on the laptop.
@@ -1177,6 +1179,12 @@ python3 capture_rpi.py
 6. Begin image processing on the laptop.
 
 ---
+
+# Future Work
+
+- H.264/H.265 hardware encoding
+- ROS 2 integration
+- Multi-camera streaming support
 
 # License
 
