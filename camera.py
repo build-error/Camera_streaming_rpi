@@ -33,7 +33,7 @@ class Camera:
                     self.picam2.create_preview_configuration(
                         main={
                             "size": (width, height),
-                            "format": "BGR888"
+                            "format": "RGB888"  # Picamera2 RGB888 = B,G,R bytes = OpenCV order
                         }
                     )
                 )

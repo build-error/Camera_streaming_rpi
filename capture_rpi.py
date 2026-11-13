@@ -1,3 +1,4 @@
+import argparse
 import socket
 import struct
 import cv2
@@ -5,10 +6,17 @@ import numpy as np
 import subprocess
 import time
 
-# PI_IP = "192.168.10.3"
-PI_IP = "192.168.4.1"
-PI_USER = "aryan"
-PI_STREAM_SCRIPT = "~/Drone/Camera_streaming_rpi/stream.py"
+# Defaults = lab Pi (X650) on DroneNet. QAV250 Pi:
+#   python3 capture_rpi.py --ip 192.168.10.4 --script '~/aryan_raven_drone/Camera_streaming_rpi/stream.py'
+parser = argparse.ArgumentParser(description="Live view of the Pi camera stream")
+parser.add_argument("--ip", default="192.168.4.1", help="Pi address (lab Pi: 192.168.4.1 hotspot, 192.168.10.3 cable)")
+parser.add_argument("--user", default="aryan", help="ssh user on the Pi")
+parser.add_argument("--script", default="~/Drone/Camera_streaming_rpi/stream.py", help="stream.py path on the Pi")
+args = parser.parse_args()
+
+PI_IP = args.ip
+PI_USER = args.user
+PI_STREAM_SCRIPT = args.script
 PORT = 9999
 
 # --------------------------------------------------

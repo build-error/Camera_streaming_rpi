@@ -14,6 +14,7 @@ The Raspberry Pi is responsible only for image acquisition and transmission. All
 Camera_streaming_rpi/
 ├── camera.py
 ├── capture_rpi.py
+├── install_picamera2_ubuntu.sh
 ├── README.md
 └── stream.py
 ```
@@ -115,11 +116,30 @@ Install Python dependencies:
 pip install opencv-python numpy
 ```
 
-For Raspberry Pi Camera support:
+For Raspberry Pi Camera support on Raspberry Pi OS:
 
 ```bash
 pip install picamera2
 ```
+
+On **Ubuntu 24.04** the Raspberry Pi camera stack (libcamera with the Pi 5 pipeline, rpicam-apps, Picamera2) is not packaged. Build it once on the Pi (about 30 min, needs internet; installs to `/usr/local`, Picamera2 with `pip --user`, keeps the system numpy 1.x that ROS OpenCV uses):
+
+```bash
+./install_picamera2_ubuntu.sh
+rpicam-hello --list-cameras        # should list imx708 for a Camera Module 3
+```
+
+## Choosing the Pi
+
+`capture_rpi.py` defaults to the lab Pi on its hotspot (`192.168.4.1`, `~/Drone/Camera_streaming_rpi/stream.py`). Other Pis:
+
+```bash
+python3 capture_rpi.py --ip 192.168.10.3                       # lab Pi over Ethernet
+python3 capture_rpi.py --ip 192.168.10.4 \
+    --script '~/aryan_raven_drone/Camera_streaming_rpi/stream.py'  # QAV250 Pi over Ethernet
+```
+
+The QAV250 Pi's hotspot is `QAV250Net` (Pi at `192.168.5.1`).
 
 ---
 
